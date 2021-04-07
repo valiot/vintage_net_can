@@ -40,6 +40,29 @@ defmodule VintageNetCan.CanConfig do
   @default_ip_enabled_options ["on", "off"]
   @fd_keys [:dbitrate, :dsample_point, :dtq, :dprop_seg, :dphase_seg1, :dphase_seg2, :dswj]
 
+  @ip_params_key %{
+    bitrate: "bitrate",
+    sample_point: "sample-point",
+    tq: "tq",
+    prop_seg: "prop-seg",
+    phase_seg1: "phase-seg1",
+    phase_seg2: "phase-seg2",
+    sjw: "sjw",
+    berr_reporting: "berr-reporting",
+    listen_only: "listen-only",
+    loopback: "loopback",
+    triple_sampling: "triple-sampling",
+    one_shot: "one-shot",
+    fd: "fd",
+    dbitrate: "dbitrate",
+    dsample_point: "dsample-point",
+    dtq: "dtq",
+    dprop_seg: "dprop-seg",
+    dphase_seg1: "dphase-seg1",
+    dphase_seg2: "dphase-seg2",
+    dsjw: "dsjw",
+  }
+
   @doc """
   Validates the IP parameters in a configuration.
   """
@@ -360,158 +383,34 @@ defmodule VintageNetCan.CanConfig do
 
   # (FD) Synchronization Jump Width parameter is not provided.
   defp validate_dsjw(config), do: config
-  
-  # @doc """
-  # Add IPv4 configuration commands for supporting static and dynamic IP addressing
-  # """
-  # @spec add_config(RawConfig.t(), map(), keyword()) :: RawConfig.t()
-  # def add_config(
-  #       %RawConfig{
-  #         ifname: ifname,
-  #         up_cmds: up_cmds,
-  #         down_cmds: down_cmds
-  #       } = raw_config,
-  #       %{ipv4: %{method: :disabled}},
-  #       _opts
-  #     ) do
-  #   # Even though IPv4 is disabled, the interface is still brought up
-  #   new_up_cmds = up_cmds ++ [{:run, "ip", ["link", "set", ifname, "up"]}]
 
-  #   new_down_cmds =
-  #     down_cmds ++
-  #       [
-  #         {:run_ignore_errors, "ip", ["addr", "flush", "dev", ifname, "label", ifname]},
-  #         {:run, "ip", ["link", "set", ifname, "down"]}
-  #       ]
+  @doc """
+  Add IP configuration commands for supporting CAN bus.
+  """
+  @spec add_config(RawConfig.t(), map(), keyword()) :: RawConfig.t()
+  def add_config(
+        %RawConfig{
+          ifname: ifname,
+          up_cmds: up_cmds,
+          down_cmds: down_cmds
+        } = raw_config,
+        %{can: can_config},
+        _opts
+      ) do
+      
+    ip_cmd_params = ["link", "set", ifname, "up", "type", "can"] ++ build_can_params(can_config)
+    new_up_cmds = up_cmds ++ [{:run, "ip", ip_cmd_params}]
 
-  #   %RawConfig{
-  #     raw_config
-  #     | up_cmds: new_up_cmds,
-  #       down_cmds: new_down_cmds
-  #   }
-  # end
+    new_down_cmds = down_cmds ++ [{:run, "ip", ["link", "set", ifname, "down"]}]
 
-  # def add_config(
-  #       %RawConfig{
-  #         ifname: ifname,
-  #         child_specs: child_specs,
-  #         up_cmds: up_cmds,
-  #         down_cmds: down_cmds
-  #       } = raw_config,
-  #       %{ipv4: %{method: :dhcp}} = config,
-  #       _opts
-  #     ) do
-  #   new_up_cmds = up_cmds ++ [{:run, "ip", ["link", "set", ifname, "up"]}]
+    %RawConfig{
+      raw_config
+      | up_cmds: new_up_cmds,
+        down_cmds: new_down_cmds
+    }
+  end
 
-  #   new_down_cmds =
-  #     down_cmds ++
-  #       [
-  #         {:run_ignore_errors, "ip", ["addr", "flush", "dev", ifname, "label", ifname]},
-  #         {:run, "ip", ["link", "set", ifname, "down"]}
-  #       ]
-
-  #   hostname = config[:hostname] || get_hostname()
-
-  #   new_child_specs =
-  #     child_specs ++
-  #       [
-  #         Supervisor.child_spec(
-  #           {VintageNet.Interface.IfupDaemon,
-  #            [
-  #              ifname: ifname,
-  #              command: "udhcpc",
-  #              args: [
-  #                "-f",
-  #                "-i",
-  #                ifname,
-  #                "-x",
-  #                "hostname:#{hostname}",
-  #                "-s",
-  #                BEAMNotify.bin_path()
-  #              ],
-  #              opts:
-  #                Command.add_muon_options(
-  #                  stderr_to_stdout: true,
-  #                  log_output: :debug,
-  #                  log_prefix: "udhcpc(#{ifname}): ",
-  #                  env: BEAMNotify.env(name: "vintage_net_comm", report_env: true)
-  #                )
-  #            ]},
-  #           id: :udhcpc
-  #         ),
-  #         {VintageNet.Interface.InternetConnectivityChecker, ifname}
-  #       ]
-
-  #   %RawConfig{
-  #     raw_config
-  #     | up_cmds: new_up_cmds,
-  #       down_cmds: new_down_cmds,
-  #       child_specs: new_child_specs
-  #   }
-  # end
-
-  # def add_config(
-  #       %RawConfig{
-  #         ifname: ifname,
-  #         up_cmds: up_cmds,
-  #         down_cmds: down_cmds,
-  #         child_specs: child_specs
-  #       } = raw_config,
-  #       %{ipv4: %{method: :static} = ipv4},
-  #       _opts
-  #     ) do
-  #   addr_subnet = IP.cidr_to_string(ipv4.address, ipv4.prefix_length)
-
-  #   route_manager_up =
-  #     case ipv4[:gateway] do
-  #       nil ->
-  #         {:fun, VintageNet.RouteManager, :clear_route, [ifname]}
-
-  #       gateway ->
-  #         {:fun, VintageNet.RouteManager, :set_route,
-  #          [ifname, [{ipv4.address, ipv4.prefix_length}], gateway, :lan]}
-  #     end
-
-  #   resolver_up =
-  #     case ipv4[:name_servers] do
-  #       nil -> {:fun, VintageNet.NameResolver, :clear, [ifname]}
-  #       [] -> {:fun, VintageNet.NameResolver, :clear, [ifname]}
-  #       servers -> {:fun, VintageNet.NameResolver, :setup, [ifname, ipv4[:domain], servers]}
-  #     end
-
-  #   new_up_cmds =
-  #     up_cmds ++
-  #       [
-  #         {:run_ignore_errors, "ip", ["addr", "flush", "dev", ifname, "label", ifname]},
-  #         {:run, "ip", ["addr", "add", addr_subnet, "dev", ifname, "label", ifname]},
-  #         {:run, "ip", ["link", "set", ifname, "up"]},
-  #         route_manager_up,
-  #         resolver_up
-  #       ]
-
-  #   new_down_cmds =
-  #     down_cmds ++
-  #       [
-  #         {:fun, VintageNet.RouteManager, :clear_route, [ifname]},
-  #         {:fun, VintageNet.NameResolver, :clear, [ifname]},
-  #         {:run_ignore_errors, "ip", ["addr", "flush", "dev", ifname, "label", ifname]},
-  #         {:run, "ip", ["link", "set", ifname, "down"]}
-  #       ]
-
-  #   # If there's a default gateway, then check for internet connectivity.
-  #   checker =
-  #     case ipv4[:gateway] do
-  #       nil -> {VintageNet.Interface.LANConnectivityChecker, ifname}
-  #       _exists -> {VintageNet.Interface.InternetConnectivityChecker, ifname}
-  #     end
-
-  #   new_child_specs = child_specs ++ [checker]
-
-  #   %RawConfig{
-  #     raw_config
-  #     | up_cmds: new_up_cmds,
-  #       down_cmds: new_down_cmds,
-  #       child_specs: new_child_specs
-  #   }
-  # end
+  def build_can_params(can_config) do
+    Enum.reduce(can_config, [], fn({can_key, value}, acc) -> acc ++ [@ip_params_key[can_key], "#{value}"] end)
+  end
 end
