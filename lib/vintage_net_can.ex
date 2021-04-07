@@ -56,7 +56,7 @@ defmodule VintageNetCan do
       ifname: ifname,
       type: __MODULE__,
       source_config: normalized_config,
-      required_ifnames: Enum.unique([ifname, linked_interface] ++ interfaces)
+      required_ifnames: Enum.uniq([ifname, linked_interface] ++ interfaces)
     }
     |> CanConfig.add_config(normalized_config, opts)
     |> SocketCanConfig.add_config(normalized_config, opts)
