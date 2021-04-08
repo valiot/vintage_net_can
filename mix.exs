@@ -53,6 +53,7 @@ defmodule VintageNetCan.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:muontrap, "~> 0.6.0"},
       {:vintage_net, "~> 0.9.1"},
       {:credo, "~> 1.2", only: :test, runtime: false},
       {:dialyxir, "~> 1.1", only: [:dev, :test], runtime: false},

@@ -24,6 +24,8 @@ defmodule VintageNetCan.SocketCanConfig do
     no_beacon: "--no-beacon"
   }
 
+  @env Mix.env()
+
   @doc """
   Validates the IP parameters in a configuration.
   """
@@ -46,7 +48,7 @@ defmodule VintageNetCan.SocketCanConfig do
   # Can Interfaces
   defp validate_can_interfaces(%{can_interfaces: can_interfaces} = config)
        when is_list(can_interfaces) do
-    with available_interfaces <- VintageNet.all_interfaces(),
+    with available_interfaces <- get_all_interfaces(@env),
          true <- all_can_interfaces_must_be_available(can_interfaces, available_interfaces) do
       config
     else
@@ -67,6 +69,14 @@ defmodule VintageNetCan.SocketCanConfig do
     Enum.all?(can_interfaces, fn interface -> interface in available_interfaces end)
   end
 
+  defp get_all_interfaces(:test) do
+    ["can0", "lo", "wlan0", "eth0"]
+  end
+
+  defp get_all_interfaces(_env) do
+    VintageNet.all_interfaces()
+  end
+
   # Port
   defp validate_port(%{port: port} = config) when is_integer(port) and port > 0,
     do: config
@@ -81,7 +91,7 @@ defmodule VintageNetCan.SocketCanConfig do
   # Linked Interface
   defp validate_linked_interface(%{linked_interface: linked_interface} = config)
        when is_binary(linked_interface) do
-    with available_interfaces <- VintageNet.all_interfaces(),
+    with available_interfaces <- get_all_interfaces(@env),
          true <- all_can_interfaces_must_be_available([linked_interface], available_interfaces) do
       config
     else
@@ -119,7 +129,7 @@ defmodule VintageNetCan.SocketCanConfig do
         _opts
       ) do
     new_child_specs =
-      with socketcand_exec <- get_executable(),
+      with socketcand_exec <- get_executable(@env),
            false <- is_nil(socketcand_exec),
            socketcand_params <- build_socketcand_params(socket_can_config) do
         child_specs ++
@@ -151,10 +161,13 @@ defmodule VintageNetCan.SocketCanConfig do
     raw_config
   end
 
-  defp get_executable(), do: Elixir.System.find_executable("socketcand")
+  defp get_executable(:test), do: "/usr/bin/socketcand"
+  defp get_executable(_env), do: Elixir.System.find_executable("socketcand")
 
   defp build_socketcand_params(socket_can_config) do
     Enum.reduce(socket_can_config, [], fn {socket_can_key, value}, acc ->
+      value = if is_list(value), do: list_to_string(value), else: value
+
       cond do
         socket_can_key == :no_beacon and value ->
           acc ++ [@socket_can_params_key[socket_can_key]]
@@ -166,5 +179,11 @@ defmodule VintageNetCan.SocketCanConfig do
           acc ++ [@socket_can_params_key[socket_can_key], "#{value}"]
       end
     end)
+  end
+
+  def list_to_string(interfaces) do
+    interfaces
+    |> Enum.reduce("", fn interface, acc -> acc <> ",#{interface}" end)
+    |> String.trim(",")
   end
 end
