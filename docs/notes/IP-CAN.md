@@ -48,8 +48,8 @@ Usage: ip link set DEVICE type can
 ## Required programs
 
 * Busybox ip
-* socketcand
 * can-utils
+* socketcand (optional)
 
 ## Config files
 
@@ -57,4 +57,37 @@ N/A
 
 ## Tested
 
-No
+```elixir
+iex(1)>VintageNet.configure("can0", %{can: %{bitrate: 500000}, type: VintageNetCan})
+:ok
+19:31:09.455 [debug] VintageNet(can0): :configured -> internal configure (VintageNetCan)
+:ok
+
+19:31:09.455 [info]  Child VintageNet.Interface of Supervisor {VintageNet.Interface.Registry, {VintageNet.Interface.Supervisor, "can0"}} started
+Pid: #PID<0.1608.0>
+Start Call: VintageNet.Interface.start_link("can0")
+Restart: :permanent
+Shutdown: 5000
+Type: :worker
+                                 
+19:31:09.484 [info]  IPv6: ADDRCONF(NETDEV_CHANGE): can0: link becomes ready
+
+iex(2)> ifconfig
+lo: flags=[:up, :loopback, :running]
+    inet 127.0.0.1  netmask 255.0.0.0
+    inet ::1  netmask ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
+    hwaddr 00:00:00:00:00:00
+
+can0: flags=[:up, :running]
+
+iex(3)> VintageNet.deconfigure("can0")                                               
+:ok
+iex(4)> ifconfig
+lo: flags=[:up, :loopback, :running]
+    inet 127.0.0.1  netmask 255.0.0.0
+    inet ::1  netmask ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
+    hwaddr 00:00:00:00:00:00
+
+can0: flags=[]
+                                 
+```

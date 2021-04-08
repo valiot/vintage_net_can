@@ -29,12 +29,11 @@ defmodule VintageNetCan.CanConfig do
   * `:dphase_seg2` - Phase Segment 2, used to compensate for edge phase errors on the bus.
   * `:dsjw` - Synchronization Jump Width.
 
-  For more information check the following references:
+  For more information check the following reference:
     * [Understanding Microchip’s CAN Module Bit Timing](http://ww1.microchip.com/downloads/en/appnotes/00754.pdf)
   """
 
   alias VintageNet.Interface.RawConfig
-  alias VintageNet.Command
 
   @default_bitrate [1_000_000, 500_000, 250_000, 125_000, 62500]
   @default_ip_enabled_options ["on", "off"]
@@ -60,7 +59,7 @@ defmodule VintageNetCan.CanConfig do
     dprop_seg: "dprop-seg",
     dphase_seg1: "dphase-seg1",
     dphase_seg2: "dphase-seg2",
-    dsjw: "dsjw",
+    dsjw: "dsjw"
   }
 
   @doc """
@@ -397,20 +396,17 @@ defmodule VintageNetCan.CanConfig do
         %{can: can_config},
         _opts
       ) do
-      
     ip_cmd_params = ["link", "set", ifname, "up", "type", "can"] ++ build_can_params(can_config)
     new_up_cmds = up_cmds ++ [{:run, "ip", ip_cmd_params}]
 
     new_down_cmds = down_cmds ++ [{:run, "ip", ["link", "set", ifname, "down"]}]
 
-    %RawConfig{
-      raw_config
-      | up_cmds: new_up_cmds,
-        down_cmds: new_down_cmds
-    }
+    %RawConfig{raw_config | up_cmds: new_up_cmds, down_cmds: new_down_cmds}
   end
 
-  def build_can_params(can_config) do
-    Enum.reduce(can_config, [], fn({can_key, value}, acc) -> acc ++ [@ip_params_key[can_key], "#{value}"] end)
+  defp build_can_params(can_config) do
+    Enum.reduce(can_config, [], fn {can_key, value}, acc ->
+      acc ++ [@ip_params_key[can_key], "#{value}"]
+    end)
   end
 end

@@ -15,21 +15,21 @@ defmodule VintageNetCan do
   ```elixir
   %{type: VintageNetCan, can: %{bitrate: 500000, loopback: "on"}}
   ```
-  
+
   To see all available option, execute the following shell command:
 
   ```bash
   ip link set can0 type can -h
   ```
 
-  An example with CAN and SocketCand configuration is:
+  An example with CAN bus and SocketCand configuration is:
   ```elixir
   %{
     type: VintageNetCan,
     can: %{bitrate: 500000, loopback: "on"},
     socket: %{
       port: 29536,
-      interfaces: ["can0"],
+      can_interfaces: ["can0"],
       linked_interface: "lo",
     }
   }
