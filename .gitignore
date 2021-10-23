@@ -25,3 +25,5 @@ vintage_net_can-*.tar
 
 # Temporary files for e.g. tests
 /tmp
+
+resolv.conf

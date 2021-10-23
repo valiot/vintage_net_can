@@ -12,6 +12,7 @@ defmodule VintageNetCan.MixProject do
       test_coverage: [tool: ExCoveralls],
       start_permanent: Mix.env() == :prod,
       build_embedded: true,
+      config_path: "config/config.exs",
       deps: deps(),
       dialyzer: dialyzer(),
       docs: docs(),
@@ -54,7 +55,7 @@ defmodule VintageNetCan.MixProject do
   defp deps do
     [
       {:muontrap, "~> 0.6.0"},
-      {:vintage_net, "~> 0.10.0"},
+      {:vintage_net, "~> 0.11"},
       {:credo, "~> 1.2", only: :test, runtime: false},
       {:dialyxir, "~> 1.1", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.22", only: :docs, runtime: false},
